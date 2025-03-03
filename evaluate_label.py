@@ -145,11 +145,12 @@ def detectron2_to_coco(input_dir, output_json, groundtruth_path):
         instances = outputs["instances"].to("cpu")
 
         for i in range(len(instances)):
-            keypoints = instances.pred_keypoints[i].numpy().astype(int) if instances.has("pred_keypoints") else None
+            keypoints = instances.pred_keypoints[i].numpy().astype(float) if instances.has("pred_keypoints") else None
             score = float(instances.scores[i]) if instances.has("scores") else 0.0
             bbox = instances.pred_boxes[i].tensor.numpy()[0].tolist() if instances.has("pred_boxes") else [0, 0, 0, 0]
 
             if keypoints is None:
+                print("pas de keypoint trouvé")
                 continue  # Ignorer si pas de keypoints détectés
 
             # Conversion des keypoints en format COCO (x, y, visibility)
@@ -157,19 +158,18 @@ def detectron2_to_coco(input_dir, output_json, groundtruth_path):
             num_keypoints = 0
             for x, y, v in keypoints:
                 if v > 0:  # Keypoint détecté
-                    keypoints_coco.extend([x, y, 2])  # 2 = visible
+                    keypoints_coco.extend([float(x), float(y), int(2)])  # 2 = visible
                     num_keypoints += 1
                 else:
-                    keypoints_coco.extend([0, 0, 0])  # 0 = non visible
+                    keypoints_coco.extend([float(0), float(0), int(0)])  # 0 = non visible
 
             coco_output.append({
-                "image_id": image_id,
-                "category_id": annotation_id + 1, 
+                "image_id": int(image_id),
+                "category_id": int(annotation_id), 
                 "keypoints": keypoints_coco,
-                "score": score 
+                "score": float(score) 
             })
 
-            annotation_id += 1
 
     # Sauvegarde du fichier COCO JSON
     with open(output_json, "w") as f:
@@ -211,10 +211,45 @@ def evaluate_label(groundtruth_json, predicted_json):
 #     model = YOLO("./model/yolo11x-pose.pt")
 #     model.predict(source="test_dataset/images/Test", verbose=True, save=True, save_txt=True, project="evaluate_model")
 #     yolo_to_coco_results("evaluate_model/predict/labels", "test_dataset/annotations/person_keypoints_test.json","evaluate_model/predictions.json")
-#     evaluate_label("test_dataset/annotations/person_keypoints_test.json","evaluate_model/predictions.json")
+#     evaluate_label("test_dataset/annotations/person_keypoints_Test.json","evaluate_model/predictions.json")
 
 if __name__ == "__main__":
+    cfg = get_cfg()
+    cfg.merge_from_file(model_zoo.get_config_file("COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x.yaml")) 
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8  # Seuil de détection
+    cfg.MODEL.WEIGHTS = "detectron2://COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x/137849621/model_final_a6e10b.pkl"
+    cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Utilisation de GPU si dispo
+    predictor =  DefaultPredictor(cfg)
+
+    # 📌 2. Charger le dossier d'images
+    image_dir = "./test_dataset/images/Test"  # Ex: "./images"
+    output_dir = "./detectron2_predictions"  # Où sauvegarder les images annotées
+    os.makedirs(output_dir, exist_ok=True)
+
+    # 📌 3. Boucle sur chaque image
+    for image_name in os.listdir(image_dir):
+        if not image_name.lower().endswith((".jpg", ".png")):
+            continue
+
+        img_path = os.path.join(image_dir, image_name)
+        image = cv2.imread(img_path)
+
+        # 📌 4. Faire des prédictions avec Detectron2
+        outputs = predictor(image)
+
+        # 📌 5. Visualiser les annotations
+        v = Visualizer(image[:, :, ::-1], metadata=MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
+        v = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+
+        # 📌 7. Sauvegarder l'image annotée
+        output_path = os.path.join(output_dir, image_name)
+        cv2.imwrite(output_path, v.get_image()[:, :, ::-1])
+
+    cv2.destroyAllWindows()
+    print(f"✅ Images annotées enregistrées dans {output_dir}")
+    
     input_dir = "./test_dataset/images/Test"  # Dossier contenant les images
-    output_json = "./detectron2_predictions.json"
+    output_json = "./detectron2_predictions/detectron2_predictions.json"
     groundtruth_dir = "./test_dataset/annotations/person_keypoints_Test.json"
     detectron2_to_coco(input_dir, output_json, groundtruth_dir)
+    evaluate_label("test_dataset/annotations/person_keypoints_Test.json","./detectron2_predictions.json")
