@@ -103,33 +103,6 @@ def detectron2_to_coco(input_dir, output_json, groundtruth_path):
 
     # Initialisation du fichier COCO
     coco_output = []
-    
-        # "info": {
-        #     "description": "Detectron2 Pose Estimation",
-        #     "version": "1.0",
-        #     "year": 2024
-        # },
-        # "licenses": [],
-        # "images": [],
-        # "annotations": [],
-        # "categories": [
-        #     {
-        #         "id": 1,
-        #         "name": "person",
-        #         "supercategory": "person",
-        #         "keypoints": [
-        #             "nose", "left_eye", "right_eye", "left_ear", "right_ear", 
-        #             "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
-        #             "left_wrist", "right_wrist", "left_hip", "right_hip",
-        #             "left_knee", "right_knee", "left_ankle", "right_ankle"
-        #         ],
-        #         "skeleton": [
-        #             [6, 12], [2, 4], [1, 2], [13, 7], [3, 1], [15, 17], 
-        #             [6, 8], [12, 13], [8, 10], [4, 6], [5, 7], [7, 9], 
-        #             [5, 3], [13, 15], [7, 6], [14, 12], [9, 11], [16, 14]
-        #         ]
-        #     }
-        # ]
 
     annotation_id = 1  # ID unique des annotations
     for filename in sorted(os.listdir(input_dir)):
