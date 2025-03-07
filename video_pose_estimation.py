@@ -5,7 +5,6 @@ import torch
 import numpy as np
 from ultralytics import YOLO
 
-# Load the detection model globally (assumed to be constant)
 DETECTION_MODEL_PATH = "model/Player-Detection-YOLOv11X-2024-12.pt"
 model_detect = YOLO(DETECTION_MODEL_PATH)
 
