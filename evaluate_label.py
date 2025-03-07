@@ -86,9 +86,9 @@ def yolo_to_coco_results(yolo_labels_dir, groundtruth_path, output_coco_results)
 
 def setup_detectron2_model():
     cfg = get_cfg()
-    cfg.merge_from_file(model_zoo.get_config_file("COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x.yaml")) 
+    cfg.merge_from_file(model_zoo.get_config_file("COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml"))
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # Seuil de détection
-    cfg.MODEL.WEIGHTS = "detectron2://COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x/137849621/model_final_a6e10b.pkl"
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml")
     cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Utilisation de GPU si dispo
     return DefaultPredictor(cfg)
 
@@ -204,52 +204,63 @@ def evaluate_label(groundtruth_json, predicted_json):
 
 
 
-# if __name__ == "__main__" :
-#     from ultralytics import YOLO
+if __name__ == "__main__" :
+    # from ultralytics import YOLO
 
-#     # model = YOLO("./model/yolo11n-pose.pt")
-#     model = YOLO("./model/yolo11x-pose.pt")
-#     model.predict(source="test_dataset/images/Test", verbose=True, save=True, save_txt=True, project="evaluate_model")
-#     yolo_to_coco_results("evaluate_model/predict/labels", "test_dataset/annotations/person_keypoints_test.json","evaluate_model/predictions.json")
-#     evaluate_label("test_dataset/annotations/person_keypoints_Test.json","evaluate_model/predictions.json")
+    # # model = YOLO("./model/yolo11n-pose.pt")
+    # model = YOLO("./model/yolo11x-pose.pt")
+    # model.predict(source="yolo_dataset/images/test", verbose=True, save=True, save_txt=True, project="evaluate_model")
+    # yolo_to_coco_results("evaluate_model/predict/labels", "test_dataset/annotations/person_keypoints_test.json","evaluate_model/predictions.json")
+    # evaluate_label("test_dataset/annotations/person_keypoints_Test.json","evaluate_model/predictions.json")
 
-if __name__ == "__main__":
-    cfg = get_cfg()
-    cfg.merge_from_file(model_zoo.get_config_file("COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x.yaml")) 
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.8  # Seuil de détection
-    cfg.MODEL.WEIGHTS = "detectron2://COCO-Keypoints/keypoint_rcnn_R_50_FPN_3x/137849621/model_final_a6e10b.pkl"
-    cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Utilisation de GPU si dispo
-    predictor =  DefaultPredictor(cfg)
+    from ultralytics import YOLO
 
-    # 📌 2. Charger le dossier d'images
-    image_dir = "./test_dataset/images/Test"  # Ex: "./images"
-    output_dir = "./detectron2_predictions"  # Où sauvegarder les images annotées
-    os.makedirs(output_dir, exist_ok=True)
+    model = YOLO("yolo_dataset/runs/yolo_training30/weights/best.pt")
+    # model = YOLO("model/yolo11x-pose.pt")
+    metrics = model.val(data="yolo_dataset/data.yaml", split="test")
+    metrics.box.map  # map50-95
+    metrics.box.map50  # map50
+    metrics.box.map75  # map75
+    metrics.box.maps
 
-    # 📌 3. Boucle sur chaque image
-    for image_name in os.listdir(image_dir):
-        if not image_name.lower().endswith((".jpg", ".png")):
-            continue
 
-        img_path = os.path.join(image_dir, image_name)
-        image = cv2.imread(img_path)
+# if __name__ == "__main__":
+#     cfg = get_cfg()
+#     cfg.merge_from_file(model_zoo.get_config_file("COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml"))
+#     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5  # Seuil de détection
+#     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Keypoints/keypoint_rcnn_R_101_FPN_3x.yaml")
+#     cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"  # Utilisation de GPU si dispo
+#     predictor =  DefaultPredictor(cfg)
 
-        # 📌 4. Faire des prédictions avec Detectron2
-        outputs = predictor(image)
+#     # 📌 2. Charger le dossier d'images
+#     image_dir = "./test_dataset/images/Test"  # Ex: "./images"
+#     output_dir = "./detectron2_r101_predictions"  # Où sauvegarder les images annotées
+#     os.makedirs(output_dir, exist_ok=True)
 
-        # 📌 5. Visualiser les annotations
-        v = Visualizer(image[:, :, ::-1], metadata=MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
-        v = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+#     # 📌 3. Boucle sur chaque image
+#     for image_name in os.listdir(image_dir):
+#         if not image_name.lower().endswith((".jpg", ".png")):
+#             continue
 
-        # 📌 7. Sauvegarder l'image annotée
-        output_path = os.path.join(output_dir, image_name)
-        cv2.imwrite(output_path, v.get_image()[:, :, ::-1])
+#         img_path = os.path.join(image_dir, image_name)
+#         image = cv2.imread(img_path)
 
-    cv2.destroyAllWindows()
-    print(f"✅ Images annotées enregistrées dans {output_dir}")
+#         # 📌 4. Faire des prédictions avec Detectron2
+#         outputs = predictor(image)
+
+#         # 📌 5. Visualiser les annotations
+#         v = Visualizer(image[:, :, ::-1], metadata=MetadataCatalog.get(cfg.DATASETS.TRAIN[0]), scale=1.2)
+#         v = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+
+#         # 📌 7. Sauvegarder l'image annotée
+#         output_path = os.path.join(output_dir, image_name)
+#         cv2.imwrite(output_path, v.get_image()[:, :, ::-1])
+
+#     cv2.destroyAllWindows()
+#     print(f"✅ Images annotées enregistrées dans {output_dir}")
     
-    input_dir = "./test_dataset/images/Test"  # Dossier contenant les images
-    output_json = "./detectron2_predictions/detectron2_predictions.json"
-    groundtruth_dir = "./test_dataset/annotations/person_keypoints_Test.json"
-    detectron2_to_coco(input_dir, output_json, groundtruth_dir)
-    evaluate_label("test_dataset/annotations/person_keypoints_Test.json","./detectron2_predictions.json")
+#     input_dir = "./test_dataset/images/Test"  # Dossier contenant les images
+#     output_json = "./detectron2_r101_predictions/detectron2_predictions.json"
+#     groundtruth_dir = "./test_dataset/annotations/person_keypoints_Test.json"
+#     detectron2_to_coco(input_dir, output_json, groundtruth_dir)
+#     evaluate_label("test_dataset/annotations/person_keypoints_Test.json","./detectron2_r101_predictions/detectron2_predictions.json")

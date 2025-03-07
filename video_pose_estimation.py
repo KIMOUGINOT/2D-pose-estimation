@@ -100,7 +100,31 @@ def process_video(video_path, output_path):
 
 # Exécution
 if __name__ == "__main__":
-    input_video = "video0.mkv"  # Remplace par ta vidéo
-    output_video = "output.mp4"
-    process_video(input_video, output_video)
-    print(f"✅ Vidéo enregistrée : {output_video}")
+    # input_video = "videoTest.mp4"  # Remplace par ta vidéo
+    # output_video = "output_videoTest.mp4"
+    # process_video(input_video, output_video)
+    # print(f"✅ Vidéo enregistrée : {output_video}")
+    import cv2
+    video_path = "video/video1.mkv"
+    cap = cv2.VideoCapture(video_path)
+
+    cpt=0
+    step=0
+    # Loop through the video frames
+    while cap.isOpened():
+        # Read a frame from the video
+        success, frame = cap.read()
+        step+=1
+            
+        if success and step%80==0:
+            cpt+=1
+            
+            cv2.imwrite("raw/Esprit2/Esprit2_{}.jpg".format(step), frame)
+            print(f"Frame {step} enregistrée")
+
+        if not(success) :
+            break
+
+    # Release the video capture object and close the display window
+    cap.release()
+    cv2.destroyAllWindows()
