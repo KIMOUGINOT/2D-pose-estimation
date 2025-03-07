@@ -14,6 +14,7 @@ def train_yolo(model_name, dataset_path, epochs=50, batch_size=16, img_size=640,
         batch_size (int, optional): Batch size. Defaults to 16.
         img_size (int, optional): Image size. Defaults to 640.
         device (str, optional): Device to use ('cuda' or 'cpu'). Defaults to 'cuda'.
+        freese (int, optional): Number of layers to freeze.
     """
     # Check if dataset exists
     data_yaml = os.path.join(dataset_path, "data.yaml")
